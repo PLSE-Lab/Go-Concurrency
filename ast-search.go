@@ -15,7 +15,7 @@ import (
 
 func main() {
 	fset := token.NewFileSet()
-	file, err := parser.ParseFile(fset, "sample/example01.go", nil, 0)
+	file, err := parser.ParseFile(fset, "sample/goroutines-with-select.go", nil, 0)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -37,8 +37,16 @@ func (v *Visitor) Visit(n ast.Node) ast.Visitor {
 	case *ast.CallExpr:
 		id, ok := x.Fun.(*ast.Ident)
 		if ok {
-			if id.Name == "pred" {
-				fmt.Printf("Visit found call to pred() at %s\n", v.fset.Position(n.Pos()))
+			if id.Name == "make" {
+				if len(x.Args) == 1 {
+					t, ok := x.Args[0].(*ast.ChanType)
+					if ok {
+						tname, ok := t.Value.(*ast.Ident)
+						if ok {
+							fmt.Printf("Found a channel of type %s at %s\n", tname.Name, v.fset.Position(n.Pos()))
+						}
+					}
+				}
 			}
 		}
 	}
