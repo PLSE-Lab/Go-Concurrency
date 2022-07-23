@@ -46,6 +46,23 @@ func (v *Visitor) Visit(n ast.Node) ast.Visitor {
 							fmt.Printf("Found a channel of type %s at %s\n", tname.Name, v.fset.Position(n.Pos()))
 						}
 					}
+				} else if len(x.Args) == 2 {
+					t, ok := x.Args[0].(*ast.ChanType)
+					if ok {
+						tname, ok := t.Value.(*ast.Ident)
+						if ok {
+							bsize, ok := x.Args[1].(*ast.BasicLit)
+							if ok {
+								if bsize.Kind == token.INT {
+									fmt.Printf("Found a channel of type %s with literal buffer size %s at %s\n", tname.Name, bsize.Value, v.fset.Position(n.Pos()))
+								} else {
+									fmt.Printf("Found a channel of type %s with buffer size %s at %s\n", tname.Name, bsize.Value, v.fset.Position(n.Pos()))
+								}
+							} else {
+								fmt.Printf("Found a channel of type %s with computed buffer size %s at %s\n", tname.Name, x.Args[1], v.fset.Position(n.Pos()))
+							}
+						}
+					}
 				}
 			}
 		}
