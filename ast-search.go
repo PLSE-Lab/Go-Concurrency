@@ -49,6 +49,11 @@ func (v *Visitor) Visit(n ast.Node) ast.Visitor {
 				}
 			}
 		}
+	case *ast.SendStmt:
+		id, ok := x.Chan.(*ast.Ident)
+		if ok {
+			fmt.Printf("Found a send to channel %s for value %s\n", id.Name, x.Value)
+		}
 	}
 	return v
 }
