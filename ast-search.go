@@ -54,6 +54,16 @@ func (v *Visitor) Visit(n ast.Node) ast.Visitor {
 		if ok {
 			fmt.Printf("Found a send to channel %s for value %s\n", id.Name, x.Value)
 		}
+	case *ast.UnaryExpr:
+		if x.Op == token.ARROW {
+			id, ok := x.X.(*ast.Ident)
+			if ok {
+				fmt.Printf("Found a read of channel %s\n", id.Name)
+			} else {
+				fmt.Printf("Found a read of channel from expr %s\n", x.X)
+			}
+		}
 	}
+
 	return v
 }
