@@ -15,7 +15,7 @@ import (
 
 func main() {
 	fset := token.NewFileSet()
-	file, err := parser.ParseFile(fset, "sample/goroutines-with-select.go", nil, 0)
+	file, err := parser.ParseFile(fset, "sample/sync/wait-group-02.go", nil, 0)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -82,6 +82,20 @@ func matchUnaryExpr(x *ast.UnaryExpr, v *Visitor, n ast.Node) {
 	}
 }
 
+func matchWaitGroupDecl(x *ast.GenDecl, v *Visitor, n ast.Node) {
+	spec, ok := x.Specs[0].(*ast.ValueSpec)
+	if ok {
+		id := spec.Names[0]
+		t, ok := spec.Type.(*ast.SelectorExpr)
+		if ok {
+			tid := t.Sel
+			if tid.Name == "WaitGroup" {
+				fmt.Printf("Found declaration of waitgroup %s\n", id.Name)
+			}
+		}
+	}
+}
+
 func (v *Visitor) Visit(n ast.Node) ast.Visitor {
 	if n == nil {
 		return nil
@@ -94,6 +108,8 @@ func (v *Visitor) Visit(n ast.Node) ast.Visitor {
 		matchSendStmt(x, v, n)
 	case *ast.UnaryExpr:
 		matchUnaryExpr(x, v, n)
+	case *ast.GenDecl:
+		matchWaitGroupDecl(x, v, n)
 	}
 	return v
 }
