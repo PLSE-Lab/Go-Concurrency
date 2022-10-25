@@ -45,6 +45,7 @@ func processDir(dirPath string) {
 		} else {
 			if filepath.Ext(path) == ".go" {
 				fmt.Printf("Processing file %s\n", path)
+				processFile(path)
 				return nil
 			} else {
 				return nil
