@@ -62,7 +62,7 @@ func processFile(filePath string) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, filePath, nil, 0)
 	if err != nil {
-		log.Print("Could not process file %s", filePath)
+		log.Printf("Could not process file %s", filePath)
 		log.Print(err)
 	} else {
 		visitor := &Visitor{fset: fset}
@@ -129,16 +129,197 @@ func matchUnaryExpr(x *ast.UnaryExpr, v *Visitor, n ast.Node) {
 }
 
 func matchWaitGroupDecl(x *ast.GenDecl, v *Visitor, n ast.Node) {
-	spec, ok := x.Specs[0].(*ast.ValueSpec)
-	if ok {
-		id := spec.Names[0]
-		t, ok := spec.Type.(*ast.SelectorExpr)
+	if len(x.Specs) > 0 {
+		spec, ok := x.Specs[0].(*ast.ValueSpec)
 		if ok {
-			tsel, ok := t.X.(*ast.Ident)
+			id := spec.Names[0]
+			t, ok := spec.Type.(*ast.SelectorExpr)
 			if ok {
-				if tsel.Name == "sync" && t.Sel.Name == "WaitGroup" {
-					fmt.Printf("Found declaration of waitgroup %s\n", id.Name)
+				tsel, ok := t.X.(*ast.Ident)
+				if ok {
+					if tsel.Name == "sync" && t.Sel.Name == "WaitGroup" {
+						fmt.Printf("Found declaration of waitgroup %s\n", id.Name)
+					}
 				}
+			}
+		}
+	}
+}
+
+func matchWaitGroupParamDecl(x *ast.Field, v *Visitor, n ast.Node) {
+	if len(x.Names) > 0 {
+		fieldName := x.Names[0]
+		fieldType, ok := x.Type.(*ast.SelectorExpr)
+		if ok {
+			tsel, ok := fieldType.X.(*ast.Ident)
+			if ok {
+				if tsel.Name == "sync" && fieldType.Sel.Name == "WaitGroup" {
+					fmt.Printf("Found declaration of waitgroup field %s\n", fieldName.Name)
+				}
+			}
+		}
+	}
+}
+
+func matchMutexDecl(x *ast.GenDecl, v *Visitor, n ast.Node) {
+	if len(x.Specs) > 0 {
+		spec, ok := x.Specs[0].(*ast.ValueSpec)
+		if ok {
+			id := spec.Names[0]
+			t, ok := spec.Type.(*ast.SelectorExpr)
+			if ok {
+				tsel, ok := t.X.(*ast.Ident)
+				if ok {
+					if tsel.Name == "sync" && t.Sel.Name == "Mutex" {
+						fmt.Printf("Found declaration of mutex %s\n", id.Name)
+					}
+				}
+			}
+		}
+	}
+}
+
+func matchMutexParamDecl(x *ast.Field, v *Visitor, n ast.Node) {
+	if len(x.Names) > 0 {
+		fieldName := x.Names[0]
+		fieldType, ok := x.Type.(*ast.SelectorExpr)
+		if ok {
+			tsel, ok := fieldType.X.(*ast.Ident)
+			if ok {
+				if tsel.Name == "sync" && fieldType.Sel.Name == "Mutex" {
+					fmt.Printf("Found declaration of mutex field %s\n", fieldName.Name)
+				}
+			}
+		}
+	}
+}
+
+func matchRWMutexDecl(x *ast.GenDecl, v *Visitor, n ast.Node) {
+	if len(x.Specs) > 0 {
+		spec, ok := x.Specs[0].(*ast.ValueSpec)
+		if ok {
+			id := spec.Names[0]
+			t, ok := spec.Type.(*ast.SelectorExpr)
+			if ok {
+				tsel, ok := t.X.(*ast.Ident)
+				if ok {
+					if tsel.Name == "sync" && t.Sel.Name == "RWMutex" {
+						fmt.Printf("Found declaration of rwmutex %s\n", id.Name)
+					}
+				}
+			}
+		}
+	}
+}
+
+func matchRWMutexParamDecl(x *ast.Field, v *Visitor, n ast.Node) {
+	if len(x.Names) > 0 {
+		fieldName := x.Names[0]
+		fieldType, ok := x.Type.(*ast.SelectorExpr)
+		if ok {
+			tsel, ok := fieldType.X.(*ast.Ident)
+			if ok {
+				if tsel.Name == "sync" && fieldType.Sel.Name == "RWMutex" {
+					fmt.Printf("Found declaration of rwmutex field %s\n", fieldName.Name)
+				}
+			}
+		}
+	}
+}
+
+func matchLockerDecl(x *ast.GenDecl, v *Visitor, n ast.Node) {
+	if len(x.Specs) > 0 {
+		spec, ok := x.Specs[0].(*ast.ValueSpec)
+		if ok {
+			id := spec.Names[0]
+			t, ok := spec.Type.(*ast.SelectorExpr)
+			if ok {
+				tsel, ok := t.X.(*ast.Ident)
+				if ok {
+					if tsel.Name == "sync" && t.Sel.Name == "Locker" {
+						fmt.Printf("Found declaration of locker %s\n", id.Name)
+					}
+				}
+			}
+		}
+	}
+}
+
+func matchLockerParamDecl(x *ast.Field, v *Visitor, n ast.Node) {
+	if len(x.Names) > 0 {
+		fieldName := x.Names[0]
+		fieldType, ok := x.Type.(*ast.SelectorExpr)
+		if ok {
+			tsel, ok := fieldType.X.(*ast.Ident)
+			if ok {
+				if tsel.Name == "sync" && fieldType.Sel.Name == "Locker" {
+					fmt.Printf("Found declaration of locker field %s\n", fieldName.Name)
+				}
+			}
+		}
+	}
+}
+
+func matchWaitGroupDone(x *ast.CallExpr, v *Visitor, n ast.Node) {
+	target, ok := x.Fun.(*ast.SelectorExpr)
+	if ok {
+		targetName, ok := target.X.(*ast.Ident)
+		if ok {
+			funName := target.Sel
+			if funName.Name == "Done" {
+				fmt.Printf("Found call of Done on target %s\n", targetName.Name)
+			}
+		}
+	}
+}
+
+func matchWaitGroupAdd(x *ast.CallExpr, v *Visitor, n ast.Node) {
+	target, ok := x.Fun.(*ast.SelectorExpr)
+	if ok {
+		targetName, ok := target.X.(*ast.Ident)
+		if ok {
+			funName := target.Sel
+			if funName.Name == "Add" {
+				fmt.Printf("Found call of Add on target %s\n", targetName.Name)
+			}
+		}
+	}
+}
+
+func matchMutexLock(x *ast.CallExpr, v *Visitor, n ast.Node) {
+	target, ok := x.Fun.(*ast.SelectorExpr)
+	if ok {
+		targetName, ok := target.X.(*ast.Ident)
+		if ok {
+			funName := target.Sel
+			if funName.Name == "Lock" {
+				fmt.Printf("Found call of Lock on target %s\n", targetName.Name)
+			}
+		}
+	}
+}
+
+func matchMutexUnlock(x *ast.CallExpr, v *Visitor, n ast.Node) {
+	target, ok := x.Fun.(*ast.SelectorExpr)
+	if ok {
+		targetName, ok := target.X.(*ast.Ident)
+		if ok {
+			funName := target.Sel
+			if funName.Name == "Unlock" {
+				fmt.Printf("Found call of Unlock on target %s\n", targetName.Name)
+			}
+		}
+	}
+}
+
+func matchWaitGroupWait(x *ast.CallExpr, v *Visitor, n ast.Node) {
+	target, ok := x.Fun.(*ast.SelectorExpr)
+	if ok {
+		targetName, ok := target.X.(*ast.Ident)
+		if ok {
+			funName := target.Sel
+			if funName.Name == "Wait" {
+				fmt.Printf("Found call of Wait on target %s\n", targetName.Name)
 			}
 		}
 	}
@@ -152,12 +333,25 @@ func (v *Visitor) Visit(n ast.Node) ast.Visitor {
 	switch x := n.(type) {
 	case *ast.CallExpr:
 		matchMakeCall(x, v, n)
+		matchWaitGroupDone(x, v, n)
+		matchWaitGroupAdd(x, v, n)
+		matchWaitGroupWait(x, v, n)
+		matchMutexLock(x, v, n)
+		matchMutexUnlock(x, v, n)
 	case *ast.SendStmt:
 		matchSendStmt(x, v, n)
 	case *ast.UnaryExpr:
 		matchUnaryExpr(x, v, n)
 	case *ast.GenDecl:
 		matchWaitGroupDecl(x, v, n)
+		matchMutexDecl(x, v, n)
+		matchRWMutexDecl(x, v, n)
+		matchLockerDecl(x, v, n)
+	case *ast.Field:
+		matchWaitGroupParamDecl(x, v, n)
+		matchMutexParamDecl(x, v, n)
+		matchRWMutexParamDecl(x, v, n)
+		matchLockerParamDecl(x, v, n)
 	}
 	return v
 }
