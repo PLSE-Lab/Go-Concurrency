@@ -346,6 +346,35 @@ func matchCondBroadcastCall(x *ast.SelectorExpr, v *Visitor, n ast.Node) {
 	}
 }
 
+func matchOnceDecl(x *ast.GenDecl, v *Visitor, n ast.Node) {
+	for i := 0; i < len(x.Specs); i++ {
+		spec, ok := x.Specs[i].(*ast.ValueSpec)
+		if ok {
+			for j := 0; j < len(spec.Names); j++ {
+				id := spec.Names[j]
+				t, ok := spec.Type.(*ast.SelectorExpr)
+				if ok {
+					tsel, ok := t.X.(*ast.Ident)
+					if ok {
+						if tsel.Name == "sync" && t.Sel.Name == "Once" {
+							fmt.Printf("Found declaration of once %s\n", id.Name)
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+func matchOnceDoCall(x *ast.SelectorExpr, v *Visitor, n ast.Node) {
+	funName := x.Sel
+	if funName.Name == "Do" {
+		var buf bytes.Buffer
+		printer.Fprint(&buf, v.fset, x.X)
+		fmt.Printf("Found call of Do on node %s\n", buf.String())
+	}
+}
+
 func (v *Visitor) Visit(n ast.Node) ast.Visitor {
 	if n == nil {
 		return nil
@@ -364,6 +393,7 @@ func (v *Visitor) Visit(n ast.Node) ast.Visitor {
 		matchMutexDecl(x, v, n)
 		matchRWMutexDecl(x, v, n)
 		matchLockerDecl(x, v, n)
+		matchOnceDecl(x, v, n)
 	case *ast.Field:
 		matchWaitGroupParamDecl(x, v, n)
 		matchMutexParamDecl(x, v, n)
@@ -377,6 +407,7 @@ func (v *Visitor) Visit(n ast.Node) ast.Visitor {
 		matchUnlock(x, v, n)
 		matchCondSignalCall(x, v, n)
 		matchCondBroadcastCall(x, v, n)
+		matchOnceDoCall(x, v, n)
 	}
 	return v
 }
