@@ -129,16 +129,18 @@ func matchUnaryExpr(x *ast.UnaryExpr, v *Visitor, n ast.Node) {
 }
 
 func matchWaitGroupDecl(x *ast.GenDecl, v *Visitor, n ast.Node) {
-	if len(x.Specs) > 0 {
-		spec, ok := x.Specs[0].(*ast.ValueSpec)
+	for i := 0; i < len(x.Specs); i++ {
+		spec, ok := x.Specs[i].(*ast.ValueSpec)
 		if ok {
-			id := spec.Names[0]
-			t, ok := spec.Type.(*ast.SelectorExpr)
-			if ok {
-				tsel, ok := t.X.(*ast.Ident)
+			for j := 0; j < len(spec.Names); j++ {
+				id := spec.Names[j]
+				t, ok := spec.Type.(*ast.SelectorExpr)
 				if ok {
-					if tsel.Name == "sync" && t.Sel.Name == "WaitGroup" {
-						fmt.Printf("Found declaration of waitgroup %s\n", id.Name)
+					tsel, ok := t.X.(*ast.Ident)
+					if ok {
+						if tsel.Name == "sync" && t.Sel.Name == "WaitGroup" {
+							fmt.Printf("Found declaration of waitgroup %s\n", id.Name)
+						}
 					}
 				}
 			}
@@ -147,8 +149,8 @@ func matchWaitGroupDecl(x *ast.GenDecl, v *Visitor, n ast.Node) {
 }
 
 func matchWaitGroupParamDecl(x *ast.Field, v *Visitor, n ast.Node) {
-	if len(x.Names) > 0 {
-		fieldName := x.Names[0]
+	for i := 0; i < len(x.Names); i++ {
+		fieldName := x.Names[i]
 		fieldType, ok := x.Type.(*ast.SelectorExpr)
 		if ok {
 			tsel, ok := fieldType.X.(*ast.Ident)
@@ -162,16 +164,18 @@ func matchWaitGroupParamDecl(x *ast.Field, v *Visitor, n ast.Node) {
 }
 
 func matchMutexDecl(x *ast.GenDecl, v *Visitor, n ast.Node) {
-	if len(x.Specs) > 0 {
-		spec, ok := x.Specs[0].(*ast.ValueSpec)
+	for i := 0; i < len(x.Specs); i++ {
+		spec, ok := x.Specs[i].(*ast.ValueSpec)
 		if ok {
-			id := spec.Names[0]
-			t, ok := spec.Type.(*ast.SelectorExpr)
-			if ok {
-				tsel, ok := t.X.(*ast.Ident)
+			for j := 0; j < len(spec.Names); j++ {
+				id := spec.Names[j]
+				t, ok := spec.Type.(*ast.SelectorExpr)
 				if ok {
-					if tsel.Name == "sync" && t.Sel.Name == "Mutex" {
-						fmt.Printf("Found declaration of mutex %s\n", id.Name)
+					tsel, ok := t.X.(*ast.Ident)
+					if ok {
+						if tsel.Name == "sync" && t.Sel.Name == "Mutex" {
+							fmt.Printf("Found declaration of mutex %s\n", id.Name)
+						}
 					}
 				}
 			}
@@ -180,8 +184,8 @@ func matchMutexDecl(x *ast.GenDecl, v *Visitor, n ast.Node) {
 }
 
 func matchMutexParamDecl(x *ast.Field, v *Visitor, n ast.Node) {
-	if len(x.Names) > 0 {
-		fieldName := x.Names[0]
+	for i := 0; i < len(x.Names); i++ {
+		fieldName := x.Names[i]
 		fieldType, ok := x.Type.(*ast.SelectorExpr)
 		if ok {
 			tsel, ok := fieldType.X.(*ast.Ident)
@@ -195,16 +199,18 @@ func matchMutexParamDecl(x *ast.Field, v *Visitor, n ast.Node) {
 }
 
 func matchRWMutexDecl(x *ast.GenDecl, v *Visitor, n ast.Node) {
-	if len(x.Specs) > 0 {
-		spec, ok := x.Specs[0].(*ast.ValueSpec)
+	for i := 0; i < len(x.Specs); i++ {
+		spec, ok := x.Specs[i].(*ast.ValueSpec)
 		if ok {
-			id := spec.Names[0]
-			t, ok := spec.Type.(*ast.SelectorExpr)
-			if ok {
-				tsel, ok := t.X.(*ast.Ident)
+			for j := 0; j < len(spec.Names); j++ {
+				id := spec.Names[j]
+				t, ok := spec.Type.(*ast.SelectorExpr)
 				if ok {
-					if tsel.Name == "sync" && t.Sel.Name == "RWMutex" {
-						fmt.Printf("Found declaration of rwmutex %s\n", id.Name)
+					tsel, ok := t.X.(*ast.Ident)
+					if ok {
+						if tsel.Name == "sync" && t.Sel.Name == "RWMutex" {
+							fmt.Printf("Found declaration of rwmutex %s\n", id.Name)
+						}
 					}
 				}
 			}
@@ -213,8 +219,8 @@ func matchRWMutexDecl(x *ast.GenDecl, v *Visitor, n ast.Node) {
 }
 
 func matchRWMutexParamDecl(x *ast.Field, v *Visitor, n ast.Node) {
-	if len(x.Names) > 0 {
-		fieldName := x.Names[0]
+	for i := 0; i < len(x.Names); i++ {
+		fieldName := x.Names[i]
 		fieldType, ok := x.Type.(*ast.SelectorExpr)
 		if ok {
 			tsel, ok := fieldType.X.(*ast.Ident)
@@ -231,13 +237,15 @@ func matchLockerDecl(x *ast.GenDecl, v *Visitor, n ast.Node) {
 	if len(x.Specs) > 0 {
 		spec, ok := x.Specs[0].(*ast.ValueSpec)
 		if ok {
-			id := spec.Names[0]
-			t, ok := spec.Type.(*ast.SelectorExpr)
-			if ok {
-				tsel, ok := t.X.(*ast.Ident)
+			for j := 0; j < len(spec.Names); j++ {
+				id := spec.Names[j]
+				t, ok := spec.Type.(*ast.SelectorExpr)
 				if ok {
-					if tsel.Name == "sync" && t.Sel.Name == "Locker" {
-						fmt.Printf("Found declaration of locker %s\n", id.Name)
+					tsel, ok := t.X.(*ast.Ident)
+					if ok {
+						if tsel.Name == "sync" && t.Sel.Name == "Locker" {
+							fmt.Printf("Found declaration of locker %s\n", id.Name)
+						}
 					}
 				}
 			}
@@ -246,8 +254,8 @@ func matchLockerDecl(x *ast.GenDecl, v *Visitor, n ast.Node) {
 }
 
 func matchLockerParamDecl(x *ast.Field, v *Visitor, n ast.Node) {
-	if len(x.Names) > 0 {
-		fieldName := x.Names[0]
+	for i := 0; i < len(x.Names); i++ {
+		fieldName := x.Names[i]
 		fieldType, ok := x.Type.(*ast.SelectorExpr)
 		if ok {
 			tsel, ok := fieldType.X.(*ast.Ident)
