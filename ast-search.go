@@ -6,10 +6,12 @@ package main
 */
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"go/ast"
 	"go/parser"
+	"go/printer"
 	"go/token"
 	"io/fs"
 	"log"
@@ -268,68 +270,79 @@ func matchLockerParamDecl(x *ast.Field, v *Visitor, n ast.Node) {
 	}
 }
 
-func matchWaitGroupDone(x *ast.CallExpr, v *Visitor, n ast.Node) {
+func matchWaitGroupDone(x *ast.SelectorExpr, v *Visitor, n ast.Node) {
+	funName := x.Sel
+	if funName.Name == "Done" {
+		var buf bytes.Buffer
+		printer.Fprint(&buf, v.fset, x.X)
+		fmt.Printf("Found call of Done on node %s\n", buf.String())
+	}
+}
+
+func matchWaitGroupAdd(x *ast.SelectorExpr, v *Visitor, n ast.Node) {
+	funName := x.Sel
+	if funName.Name == "Add" {
+		var buf bytes.Buffer
+		printer.Fprint(&buf, v.fset, x.X)
+		fmt.Printf("Found call of Add on node %s\n", buf.String())
+	}
+}
+
+func matchLock(x *ast.SelectorExpr, v *Visitor, n ast.Node) {
+	funName := x.Sel
+	if funName.Name == "Lock" {
+		var buf bytes.Buffer
+		printer.Fprint(&buf, v.fset, x.X)
+		fmt.Printf("Found call of Lock on node %s\n", buf.String())
+	}
+}
+
+func matchUnlock(x *ast.SelectorExpr, v *Visitor, n ast.Node) {
+	funName := x.Sel
+	if funName.Name == "Unlock" {
+		var buf bytes.Buffer
+		printer.Fprint(&buf, v.fset, x.X)
+		fmt.Printf("Found call of Unlock on node %s\n", buf.String())
+	}
+}
+
+func matchWaitGroupWait(x *ast.SelectorExpr, v *Visitor, n ast.Node) {
+	funName := x.Sel
+	if funName.Name == "Wait" {
+		var buf bytes.Buffer
+		printer.Fprint(&buf, v.fset, x.X)
+		fmt.Printf("Found call of Wait on node %s\n", buf.String())
+	}
+}
+
+func matchNewCondCall(x *ast.CallExpr, v *Visitor, n ast.Node) {
 	target, ok := x.Fun.(*ast.SelectorExpr)
 	if ok {
 		targetName, ok := target.X.(*ast.Ident)
 		if ok {
 			funName := target.Sel
-			if funName.Name == "Done" {
-				fmt.Printf("Found call of Done on target %s\n", targetName.Name)
+			if funName.Name == "NewCond" && targetName.Name == "sync" {
+				fmt.Print("Found call of NewCond\n")
 			}
 		}
 	}
 }
 
-func matchWaitGroupAdd(x *ast.CallExpr, v *Visitor, n ast.Node) {
-	target, ok := x.Fun.(*ast.SelectorExpr)
-	if ok {
-		targetName, ok := target.X.(*ast.Ident)
-		if ok {
-			funName := target.Sel
-			if funName.Name == "Add" {
-				fmt.Printf("Found call of Add on target %s\n", targetName.Name)
-			}
-		}
+func matchCondSignalCall(x *ast.SelectorExpr, v *Visitor, n ast.Node) {
+	funName := x.Sel
+	if funName.Name == "Signal" {
+		var buf bytes.Buffer
+		printer.Fprint(&buf, v.fset, x.X)
+		fmt.Printf("Found call of Signal on node %s\n", buf.String())
 	}
 }
 
-func matchMutexLock(x *ast.CallExpr, v *Visitor, n ast.Node) {
-	target, ok := x.Fun.(*ast.SelectorExpr)
-	if ok {
-		targetName, ok := target.X.(*ast.Ident)
-		if ok {
-			funName := target.Sel
-			if funName.Name == "Lock" {
-				fmt.Printf("Found call of Lock on target %s\n", targetName.Name)
-			}
-		}
-	}
-}
-
-func matchMutexUnlock(x *ast.CallExpr, v *Visitor, n ast.Node) {
-	target, ok := x.Fun.(*ast.SelectorExpr)
-	if ok {
-		targetName, ok := target.X.(*ast.Ident)
-		if ok {
-			funName := target.Sel
-			if funName.Name == "Unlock" {
-				fmt.Printf("Found call of Unlock on target %s\n", targetName.Name)
-			}
-		}
-	}
-}
-
-func matchWaitGroupWait(x *ast.CallExpr, v *Visitor, n ast.Node) {
-	target, ok := x.Fun.(*ast.SelectorExpr)
-	if ok {
-		targetName, ok := target.X.(*ast.Ident)
-		if ok {
-			funName := target.Sel
-			if funName.Name == "Wait" {
-				fmt.Printf("Found call of Wait on target %s\n", targetName.Name)
-			}
-		}
+func matchCondBroadcastCall(x *ast.SelectorExpr, v *Visitor, n ast.Node) {
+	funName := x.Sel
+	if funName.Name == "Broadcast" {
+		var buf bytes.Buffer
+		printer.Fprint(&buf, v.fset, x.X)
+		fmt.Printf("Found call of Broadcast on node %s\n", buf.String())
 	}
 }
 
@@ -341,11 +354,7 @@ func (v *Visitor) Visit(n ast.Node) ast.Visitor {
 	switch x := n.(type) {
 	case *ast.CallExpr:
 		matchMakeCall(x, v, n)
-		matchWaitGroupDone(x, v, n)
-		matchWaitGroupAdd(x, v, n)
-		matchWaitGroupWait(x, v, n)
-		matchMutexLock(x, v, n)
-		matchMutexUnlock(x, v, n)
+		matchNewCondCall(x, v, n)
 	case *ast.SendStmt:
 		matchSendStmt(x, v, n)
 	case *ast.UnaryExpr:
@@ -360,6 +369,14 @@ func (v *Visitor) Visit(n ast.Node) ast.Visitor {
 		matchMutexParamDecl(x, v, n)
 		matchRWMutexParamDecl(x, v, n)
 		matchLockerParamDecl(x, v, n)
+	case *ast.SelectorExpr:
+		matchWaitGroupDone(x, v, n)
+		matchWaitGroupAdd(x, v, n)
+		matchWaitGroupWait(x, v, n)
+		matchLock(x, v, n)
+		matchUnlock(x, v, n)
+		matchCondSignalCall(x, v, n)
+		matchCondBroadcastCall(x, v, n)
 	}
 	return v
 }
