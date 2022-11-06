@@ -7,6 +7,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/csv"
 	"flag"
 	"fmt"
 	"go/ast"
@@ -15,7 +16,9 @@ import (
 	"go/token"
 	"io/fs"
 	"log"
+	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -249,6 +252,41 @@ func targetPieces(target string) int {
 	return len(parts)
 }
 
+func stateHeaders() []string {
+	res := []string{"fileName", "waitGroupDecls", "condDecls", "onceDecls",
+		"mutexDecls", "rwMutexDecls", "lockerDecls", "waitGroupDone",
+		"waitGroupAdd", "waitGroupWait", "mutexLock", "mutexUnlock",
+		"rwMutexLock", "rwMutexUnlock", "lockerLock", "lockerUnlock",
+		"condLock", "condUnlock",
+		"condWait", "condSignal", "condBroadcast", "condNew",
+		"onceDo", "unknownDone", "unknownAdd", "unknownWait",
+		"unknownLock", "unknownUnlock", "unknownSignal", "unknownBroadcast",
+		"unknownDo",
+	}
+	return res
+}
+
+func (s *AnalysisState) stateToSlice(fileName string) []string {
+	res := []string{fileName, strconv.Itoa(s.counts.waitGroupDecls),
+		strconv.Itoa(s.counts.condDecls), strconv.Itoa(s.counts.onceDecls),
+		strconv.Itoa(s.counts.mutexDecls), strconv.Itoa(s.counts.rwMutexDecls),
+		strconv.Itoa(s.counts.lockerDecls), strconv.Itoa(s.counts.waitGroupDone),
+		strconv.Itoa(s.counts.waitGroupAdd), strconv.Itoa(s.counts.waitGroupWait),
+		strconv.Itoa(s.counts.mutexLock), strconv.Itoa(s.counts.mutexUnlock),
+		strconv.Itoa(s.counts.rwMutexLock), strconv.Itoa(s.counts.rwMutexUnlock),
+		strconv.Itoa(s.counts.lockerLock), strconv.Itoa(s.counts.lockerUnlock),
+		strconv.Itoa(s.counts.condLock), strconv.Itoa(s.counts.condUnlock),
+		strconv.Itoa(s.counts.condWait), strconv.Itoa(s.counts.condSignal),
+		strconv.Itoa(s.counts.condBroadcast), strconv.Itoa(s.counts.condNew),
+		strconv.Itoa(s.counts.onceDo), strconv.Itoa(s.counts.unknownDone),
+		strconv.Itoa(s.counts.unknownAdd), strconv.Itoa(s.counts.unknownWait),
+		strconv.Itoa(s.counts.unknownLock), strconv.Itoa(s.counts.unknownUnlock),
+		strconv.Itoa(s.counts.unknownSignal), strconv.Itoa(s.counts.unknownBroadcast),
+		strconv.Itoa(s.counts.unknownDo),
+	}
+	return res
+}
+
 func (s *AnalysisState) addDone(target string) {
 	target = splitTarget(target)
 	vs, ok := s.decls[target]
@@ -461,21 +499,40 @@ func main() {
 	var dirPath string
 	flag.StringVar(&dirPath, "dirPath", "", "The directory to be processed")
 
+	var outputFile string
+	flag.StringVar(&outputFile, "output", "", "The CSV file to be created")
+
 	flag.Parse()
 
-	if dirPath != "" {
-		fmt.Printf("Processing all go files in directory %s\n", dirPath)
-		processDir(dirPath)
-	} else if filePath != "" {
-		fmt.Printf("Processing file %s\n", filePath)
-		processFile(filePath)
+	if outputFile != "" {
+		csvFile, err := os.Create(outputFile)
+		if err == nil {
+			writer := csv.NewWriter(csvFile)
+			if err := writer.Write(stateHeaders()); err != nil {
+				log.Fatalln("Error writing CSV file", err)
+			}
+			defer writer.Flush()
+			if dirPath != "" {
+				fmt.Printf("Processing all go files in directory %s\n", dirPath)
+				processDir(dirPath, writer)
+			} else if filePath != "" {
+				fmt.Printf("Processing file %s\n", filePath)
+				processFile(filePath, writer)
+			} else {
+				fmt.Print("No file or directory given\n")
+			}
+
+			csvFile.Close()
+		} else {
+			log.Fatalln("Error creating CSV file", err)
+		}
 	} else {
-		fmt.Printf("No file or directory given\n")
+		fmt.Print("No output file given\n")
 	}
 
 }
 
-func processDir(dirPath string) {
+func processDir(dirPath string, writer *csv.Writer) {
 	var err = filepath.Walk(dirPath, func(path string, info fs.FileInfo, err error) error {
 		if err != nil {
 			fmt.Printf("Encountered an error accessing path %q: %v\n", path, err)
@@ -483,7 +540,7 @@ func processDir(dirPath string) {
 		} else {
 			if filepath.Ext(path) == ".go" {
 				fmt.Printf("Processing file %s\n", path)
-				processFile(path)
+				processFile(path, writer)
 				return nil
 			} else {
 				return nil
@@ -496,7 +553,7 @@ func processDir(dirPath string) {
 	}
 }
 
-func processFile(filePath string) {
+func processFile(filePath string, writer *csv.Writer) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, filePath, nil, 0)
 	if err != nil {
@@ -508,6 +565,10 @@ func processFile(filePath string) {
 		ast.Walk(declVisitor, file)
 		usesVisitor := &Visitor{fset: fset, mode: false, state: fileState}
 		ast.Walk(usesVisitor, file)
+		if err := writer.Write(fileState.stateToSlice(filePath)); err != nil {
+			log.Fatalln("Error writing CSV file", err)
+		}
+		writer.Flush()
 	}
 }
 
