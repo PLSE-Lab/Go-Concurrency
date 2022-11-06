@@ -16,6 +16,7 @@ import (
 	"io/fs"
 	"log"
 	"path/filepath"
+	"strings"
 )
 
 type DeclType int64
@@ -238,7 +239,18 @@ func (s *AnalysisState) addUnknownDo() {
 	s.counts.unknownDo++
 }
 
+func splitTarget(target string) string {
+	parts := strings.Split(target, ".")
+	return parts[len(parts)-1]
+}
+
+func targetPieces(target string) int {
+	parts := strings.Split(target, ".")
+	return len(parts)
+}
+
 func (s *AnalysisState) addDone(target string) {
+	target = splitTarget(target)
 	vs, ok := s.decls[target]
 	if ok {
 		if len(vs) == 1 {
@@ -260,6 +272,7 @@ func (s *AnalysisState) addDone(target string) {
 }
 
 func (s *AnalysisState) addAdd(target string) {
+	target = splitTarget(target)
 	vs, ok := s.decls[target]
 	if ok {
 		if len(vs) == 1 {
@@ -281,14 +294,15 @@ func (s *AnalysisState) addAdd(target string) {
 }
 
 func (s *AnalysisState) addWait(target string) {
+	target = splitTarget(target)
 	vs, ok := s.decls[target]
 	if ok {
 		if len(vs) == 1 {
 			if vs[0].typeof == WaitGroup {
-				fmt.Printf("Found use of Wait for Cond target %s\n", vs[0].name)
+				fmt.Printf("Found use of Wait for WaitGroup target %s\n", vs[0].name)
 				s.addWaitGroupWait()
 			} else if vs[0].typeof == Cond {
-				fmt.Printf("Found use of Wait for Mutex target %s\n", vs[0].name)
+				fmt.Printf("Found use of Wait for Cond target %s\n", vs[0].name)
 				s.addCondWait()
 			} else {
 				fmt.Printf("Unexpected match for target %s for call to Wait\n", target)
@@ -305,6 +319,11 @@ func (s *AnalysisState) addWait(target string) {
 }
 
 func (s *AnalysisState) addLock(target string) {
+	_, ok := s.decls[target]
+	if !ok && targetPieces(target) > 1 && splitTarget(target) == "L" {
+		target = target[:len(target)-2]
+	}
+	target = splitTarget(target)
 	vs, ok := s.decls[target]
 	if ok {
 		if len(vs) == 1 {
@@ -335,6 +354,11 @@ func (s *AnalysisState) addLock(target string) {
 }
 
 func (s *AnalysisState) addUnlock(target string) {
+	_, ok := s.decls[target]
+	if !ok && targetPieces(target) > 1 && splitTarget(target) == "L" {
+		target = target[:len(target)-2]
+	}
+	target = splitTarget(target)
 	vs, ok := s.decls[target]
 	if ok {
 		if len(vs) == 1 {
@@ -365,6 +389,7 @@ func (s *AnalysisState) addUnlock(target string) {
 }
 
 func (s *AnalysisState) addSignal(target string) {
+	target = splitTarget(target)
 	vs, ok := s.decls[target]
 	if ok {
 		if len(vs) == 1 {
@@ -386,6 +411,7 @@ func (s *AnalysisState) addSignal(target string) {
 }
 
 func (s *AnalysisState) addBroadcast(target string) {
+	target = splitTarget(target)
 	vs, ok := s.decls[target]
 	if ok {
 		if len(vs) == 1 {
@@ -407,6 +433,7 @@ func (s *AnalysisState) addBroadcast(target string) {
 }
 
 func (s *AnalysisState) addDo(target string) {
+	target = splitTarget(target)
 	vs, ok := s.decls[target]
 	if ok {
 		if len(vs) == 1 {
@@ -734,6 +761,50 @@ func matchOnceDecl(x *ast.GenDecl, v *Visitor, n ast.Node) {
 	}
 }
 
+func matchCondDecl(x *ast.GenDecl, v *Visitor, n ast.Node) {
+	for i := 0; i < len(x.Specs); i++ {
+		spec, ok := x.Specs[i].(*ast.ValueSpec)
+		if ok {
+			for j := 0; j < len(spec.Names); j++ {
+				id := spec.Names[j]
+				t, ok := spec.Type.(*ast.SelectorExpr)
+				if ok {
+					tsel, ok := t.X.(*ast.Ident)
+					if ok {
+						if tsel.Name == "sync" && t.Sel.Name == "Cond" {
+							fmt.Printf("Found declaration of cond %s\n", id.Name)
+							v.addDef(createDecl(id.Name, Cond))
+							v.state.addCondDecl()
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+func matchCondAssignDecl(x *ast.AssignStmt, v *Visitor, n ast.Node) {
+	for i := 0; i < len(x.Rhs); i++ {
+		call, ok := x.Rhs[i].(*ast.CallExpr)
+		if ok {
+			t, ok := call.Fun.(*ast.SelectorExpr)
+			if ok {
+				tid, ok := t.X.(*ast.Ident)
+				if ok {
+					if tid.Name == "sync" && t.Sel.Name == "NewCond" {
+						id, ok := x.Lhs[0].(*ast.Ident)
+						if ok {
+							fmt.Printf("Found declaration of cond %s\n", id.Name)
+							v.addDef(createDecl(id.Name, Cond))
+							v.state.addCondDecl()
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
 func matchOnceParamDecl(x *ast.Field, v *Visitor, n ast.Node) {
 	for i := 0; i < len(x.Names); i++ {
 		fieldName := x.Names[i]
@@ -895,6 +966,7 @@ func (v *Visitor) Visit(n ast.Node) ast.Visitor {
 			matchRWMutexDecl(x, v, n)
 			matchLockerDecl(x, v, n)
 			matchOnceDecl(x, v, n)
+			matchCondDecl(x, v, n)
 		case *ast.Field:
 			matchWaitGroupParamDecl(x, v, n)
 			matchMutexParamDecl(x, v, n)
@@ -902,6 +974,8 @@ func (v *Visitor) Visit(n ast.Node) ast.Visitor {
 			matchLockerParamDecl(x, v, n)
 			matchOnceParamDecl(x, v, n)
 			matchCondParamDecl(x, v, n)
+		case *ast.AssignStmt:
+			matchCondAssignDecl(x, v, n)
 		}
 		return v
 	} else {
