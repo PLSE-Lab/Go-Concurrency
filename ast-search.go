@@ -81,8 +81,14 @@ type Counts struct {
 	waitGroupWait    int
 	mutexLock        int
 	mutexUnlock      int
+	mutexTryLock     int
 	rwMutexLock      int
 	rwMutexUnlock    int
+	rwMutexTryLock   int
+	rwMutexRLock     int
+	rwMutexRUnlock   int
+	rwMutexTryRLock  int
+	rwMutexRLocker   int
 	lockerLock       int
 	lockerUnlock     int
 	condLock         int
@@ -97,6 +103,11 @@ type Counts struct {
 	unknownWait      int
 	unknownLock      int
 	unknownUnlock    int
+	unknownTryLock   int
+	unknownRLock     int
+	unknownRUnlock   int
+	unknownTryRLock  int
+	unknownRLocker   int
 	unknownSignal    int
 	unknownBroadcast int
 	unknownDo        int
@@ -166,12 +177,36 @@ func (s *AnalysisState) addMutexUnlock() {
 	s.counts.mutexUnlock++
 }
 
+func (s *AnalysisState) addMutexTryLock() {
+	s.counts.mutexTryLock++
+}
+
 func (s *AnalysisState) addRWMutexLock() {
 	s.counts.rwMutexLock++
 }
 
 func (s *AnalysisState) addRWMutexUnlock() {
 	s.counts.rwMutexUnlock++
+}
+
+func (s *AnalysisState) addRWMutexTryLock() {
+	s.counts.rwMutexTryLock++
+}
+
+func (s *AnalysisState) addRWMutexRLock() {
+	s.counts.rwMutexRLock++
+}
+
+func (s *AnalysisState) addRWMutexRUnlock() {
+	s.counts.rwMutexRUnlock++
+}
+
+func (s *AnalysisState) addRWMutexTryRLock() {
+	s.counts.rwMutexTryRLock++
+}
+
+func (s *AnalysisState) addRWMutexRLocker() {
+	s.counts.rwMutexRLocker++
 }
 
 func (s *AnalysisState) addLockerLock() {
@@ -230,6 +265,26 @@ func (s *AnalysisState) addUnknownUnlock() {
 	s.counts.unknownUnlock++
 }
 
+func (s *AnalysisState) addUnknownTryLock() {
+	s.counts.unknownTryLock++
+}
+
+func (s *AnalysisState) addUnknownRLock() {
+	s.counts.unknownRLock++
+}
+
+func (s *AnalysisState) addUnknownRUnlock() {
+	s.counts.unknownRUnlock++
+}
+
+func (s *AnalysisState) addUnknownTryRLock() {
+	s.counts.unknownTryRLock++
+}
+
+func (s *AnalysisState) addUnknownRLocker() {
+	s.counts.unknownRLocker++
+}
+
 func (s *AnalysisState) addUnknownSignal() {
 	s.counts.unknownSignal++
 }
@@ -253,14 +308,20 @@ func targetPieces(target string) int {
 }
 
 func stateHeaders() []string {
-	res := []string{"fileName", "waitGroupDecls", "condDecls", "onceDecls",
-		"mutexDecls", "rwMutexDecls", "lockerDecls", "waitGroupDone",
-		"waitGroupAdd", "waitGroupWait", "mutexLock", "mutexUnlock",
-		"rwMutexLock", "rwMutexUnlock", "lockerLock", "lockerUnlock",
+	res := []string{"fileName",
+		"waitGroupDecls", "condDecls", "onceDecls",
+		"mutexDecls", "rwMutexDecls", "lockerDecls",
+		"waitGroupDone", "waitGroupAdd", "waitGroupWait",
+		"mutexLock", "mutexUnlock", "mutexTryLock",
+		"rwMutexLock", "rwMutexUnlock", "rwMutexTryLock", "rwMutexRLock",
+		"rwMutexRUnlock", "rwMutexTryRLock", "rwMutexRLocker",
+		"lockerLock", "lockerUnlock",
 		"condLock", "condUnlock",
 		"condWait", "condSignal", "condBroadcast", "condNew",
 		"onceDo", "unknownDone", "unknownAdd", "unknownWait",
-		"unknownLock", "unknownUnlock", "unknownSignal", "unknownBroadcast",
+		"unknownLock", "unknownUnlock", "unknownTryLock",
+		"unknownRLock", "unknownRUnlock", "unknownTryRLock", "unknownRLocker",
+		"unknownSignal", "unknownBroadcast",
 		"unknownDo",
 	}
 	return res
@@ -273,7 +334,11 @@ func (s *AnalysisState) stateToSlice(fileName string) []string {
 		strconv.Itoa(s.counts.lockerDecls), strconv.Itoa(s.counts.waitGroupDone),
 		strconv.Itoa(s.counts.waitGroupAdd), strconv.Itoa(s.counts.waitGroupWait),
 		strconv.Itoa(s.counts.mutexLock), strconv.Itoa(s.counts.mutexUnlock),
+		strconv.Itoa(s.counts.mutexTryLock),
 		strconv.Itoa(s.counts.rwMutexLock), strconv.Itoa(s.counts.rwMutexUnlock),
+		strconv.Itoa(s.counts.rwMutexTryLock),
+		strconv.Itoa(s.counts.rwMutexRLock), strconv.Itoa(s.counts.rwMutexRUnlock),
+		strconv.Itoa(s.counts.rwMutexTryRLock), strconv.Itoa(s.counts.rwMutexRLocker),
 		strconv.Itoa(s.counts.lockerLock), strconv.Itoa(s.counts.lockerUnlock),
 		strconv.Itoa(s.counts.condLock), strconv.Itoa(s.counts.condUnlock),
 		strconv.Itoa(s.counts.condWait), strconv.Itoa(s.counts.condSignal),
@@ -281,6 +346,9 @@ func (s *AnalysisState) stateToSlice(fileName string) []string {
 		strconv.Itoa(s.counts.onceDo), strconv.Itoa(s.counts.unknownDone),
 		strconv.Itoa(s.counts.unknownAdd), strconv.Itoa(s.counts.unknownWait),
 		strconv.Itoa(s.counts.unknownLock), strconv.Itoa(s.counts.unknownUnlock),
+		strconv.Itoa(s.counts.unknownTryLock),
+		strconv.Itoa(s.counts.unknownRLock), strconv.Itoa(s.counts.unknownRUnlock),
+		strconv.Itoa(s.counts.unknownTryRLock), strconv.Itoa(s.counts.unknownRLocker),
 		strconv.Itoa(s.counts.unknownSignal), strconv.Itoa(s.counts.unknownBroadcast),
 		strconv.Itoa(s.counts.unknownDo),
 	}
@@ -391,6 +459,32 @@ func (s *AnalysisState) addLock(target string) {
 	}
 }
 
+func (s *AnalysisState) addRLock(target string) {
+	_, ok := s.decls[target]
+	if !ok && targetPieces(target) > 1 && splitTarget(target) == "L" {
+		target = target[:len(target)-2]
+	}
+	target = splitTarget(target)
+	vs, ok := s.decls[target]
+	if ok {
+		if len(vs) == 1 {
+			if vs[0].typeof == RWMutex {
+				fmt.Printf("Found use of RLock for RWMutex target %s\n", vs[0].name)
+				s.addRWMutexRLock()
+			} else {
+				fmt.Printf("Unexpected match for target %s for call to RLock\n", target)
+				s.addUnknownRLock()
+			}
+		} else {
+			fmt.Printf("Multiple matches for target %s for call to RLock\n", target)
+			s.addUnknownRLock()
+		}
+	} else {
+		fmt.Printf("No match for target %s for call to RLock\n", target)
+		s.addUnknownRLock()
+	}
+}
+
 func (s *AnalysisState) addUnlock(target string) {
 	_, ok := s.decls[target]
 	if !ok && targetPieces(target) > 1 && splitTarget(target) == "L" {
@@ -423,6 +517,113 @@ func (s *AnalysisState) addUnlock(target string) {
 	} else {
 		fmt.Printf("No match for target %s for call to Unlock\n", target)
 		s.addUnknownUnlock()
+	}
+}
+
+func (s *AnalysisState) addRUnlock(target string) {
+	_, ok := s.decls[target]
+	if !ok && targetPieces(target) > 1 && splitTarget(target) == "L" {
+		target = target[:len(target)-2]
+	}
+	target = splitTarget(target)
+	vs, ok := s.decls[target]
+	if ok {
+		if len(vs) == 1 {
+			if vs[0].typeof == RWMutex {
+				fmt.Printf("Found use of RUnlock for RWMutex target %s\n", vs[0].name)
+				s.addRWMutexRUnlock()
+			} else {
+				fmt.Printf("Unexpected match for target %s for call to RUnlock\n", target)
+				s.addUnknownRUnlock()
+			}
+		} else {
+			fmt.Printf("Multiple matches for target %s for call to RUnlock\n", target)
+			s.addUnknownRUnlock()
+		}
+	} else {
+		fmt.Printf("No match for target %s for call to RUnlock\n", target)
+		s.addUnknownRUnlock()
+	}
+}
+
+func (s *AnalysisState) addTryLock(target string) {
+	_, ok := s.decls[target]
+	if !ok && targetPieces(target) > 1 && splitTarget(target) == "L" {
+		target = target[:len(target)-2]
+	}
+	target = splitTarget(target)
+	vs, ok := s.decls[target]
+	if ok {
+		if len(vs) == 1 {
+			if vs[0].typeof == Mutex {
+				fmt.Printf("Found use of TryLock for Mutex target %s\n", vs[0].name)
+				s.addMutexTryLock()
+			} else if vs[0].typeof == RWMutex {
+				fmt.Printf("Found use of TryLock for RWMutex target %s\n", vs[0].name)
+				s.addRWMutexTryLock()
+			} else {
+				fmt.Printf("Unexpected match for target %s for call to TryLock\n", target)
+				s.addUnknownTryLock()
+			}
+		} else {
+			fmt.Printf("Multiple matches for target %s for call to TryLock\n", target)
+			s.addUnknownTryLock()
+		}
+	} else {
+		fmt.Printf("No match for target %s for call to TryLock\n", target)
+		s.addUnknownTryLock()
+	}
+}
+
+func (s *AnalysisState) addTryRLock(target string) {
+	_, ok := s.decls[target]
+	if !ok && targetPieces(target) > 1 && splitTarget(target) == "L" {
+		target = target[:len(target)-2]
+	}
+	target = splitTarget(target)
+	vs, ok := s.decls[target]
+	if ok {
+		if len(vs) == 1 {
+			if vs[0].typeof == RWMutex {
+				fmt.Printf("Found use of TryRLock for RWMutex target %s\n", vs[0].name)
+				s.addRWMutexTryRLock()
+			} else {
+				fmt.Printf("Unexpected match for target %s for call to TryRLock\n", target)
+				s.addUnknownTryRLock()
+			}
+		} else {
+			fmt.Printf("Multiple matches for target %s for call to TryRLock\n", target)
+			s.addUnknownTryRLock()
+		}
+	} else {
+		fmt.Printf("No match for target %s for call to TryRLock\n", target)
+		s.addUnknownTryRLock()
+	}
+}
+
+func (s *AnalysisState) addRLocker(target string) {
+	_, ok := s.decls[target]
+	if !ok && targetPieces(target) > 1 && splitTarget(target) == "L" {
+		target = target[:len(target)-2]
+	}
+	target = splitTarget(target)
+	vs, ok := s.decls[target]
+	if ok {
+		if len(vs) == 1 {
+			if vs[0].typeof == RWMutex {
+				fmt.Printf("Found use of RLocker for RWMutex target %s\n", vs[0].name)
+				s.addRWMutexRLocker()
+			} else {
+				fmt.Printf("Unexpected match for target %s for call to RLocker\n", target)
+				s.addUnknownRLocker()
+			}
+		} else {
+			fmt.Printf("Multiple matches for target %s for call to RLocker\n", target)
+			s.addUnknownRLocker()
+		}
+	} else {
+		fmt.Printf("No match for target %s for call to RLocker\n", target)
+		s.addUnknownRLocker()
 	}
 }
 
@@ -950,6 +1151,46 @@ func matchLock(x *ast.SelectorExpr, v *Visitor, n ast.Node) {
 	}
 }
 
+func matchTryLock(x *ast.SelectorExpr, v *Visitor, n ast.Node) {
+	funName := x.Sel
+	if funName.Name == "TryLock" {
+		var buf bytes.Buffer
+		printer.Fprint(&buf, v.fset, x.X)
+		fmt.Printf("Found call of TryLock on node %s\n", buf.String())
+		v.state.addTryLock(buf.String())
+	}
+}
+
+func matchTryRLock(x *ast.SelectorExpr, v *Visitor, n ast.Node) {
+	funName := x.Sel
+	if funName.Name == "TryRLock" {
+		var buf bytes.Buffer
+		printer.Fprint(&buf, v.fset, x.X)
+		fmt.Printf("Found call of TryRLock on node %s\n", buf.String())
+		v.state.addTryRLock(buf.String())
+	}
+}
+
+func matchRLock(x *ast.SelectorExpr, v *Visitor, n ast.Node) {
+	funName := x.Sel
+	if funName.Name == "RLock" {
+		var buf bytes.Buffer
+		printer.Fprint(&buf, v.fset, x.X)
+		fmt.Printf("Found call of RLock on node %s\n", buf.String())
+		v.state.addRLock(buf.String())
+	}
+}
+
+func matchRLocker(x *ast.SelectorExpr, v *Visitor, n ast.Node) {
+	funName := x.Sel
+	if funName.Name == "RLocker" {
+		var buf bytes.Buffer
+		printer.Fprint(&buf, v.fset, x.X)
+		fmt.Printf("Found call of RLocker on node %s\n", buf.String())
+		v.state.addRLocker(buf.String())
+	}
+}
+
 func matchUnlock(x *ast.SelectorExpr, v *Visitor, n ast.Node) {
 	funName := x.Sel
 	if funName.Name == "Unlock" {
@@ -957,6 +1198,16 @@ func matchUnlock(x *ast.SelectorExpr, v *Visitor, n ast.Node) {
 		printer.Fprint(&buf, v.fset, x.X)
 		fmt.Printf("Found call of Unlock on node %s\n", buf.String())
 		v.state.addUnlock(buf.String())
+	}
+}
+
+func matchRUnlock(x *ast.SelectorExpr, v *Visitor, n ast.Node) {
+	funName := x.Sel
+	if funName.Name == "RUnlock" {
+		var buf bytes.Buffer
+		printer.Fprint(&buf, v.fset, x.X)
+		fmt.Printf("Found call of RUnlock on node %s\n", buf.String())
+		v.state.addRUnlock(buf.String())
 	}
 }
 
@@ -1059,9 +1310,14 @@ func (v *Visitor) Visit(n ast.Node) ast.Visitor {
 			matchWait(x, v, n)
 			matchLock(x, v, n)
 			matchUnlock(x, v, n)
+			matchTryLock(x, v, n)
+			matchRLock(x, v, n)
+			matchRUnlock(x, v, n)
+			matchTryRLock(x, v, n)
 			matchSignal(x, v, n)
 			matchBroadcast(x, v, n)
 			matchDo(x, v, n)
+			matchRLocker(x, v, n)
 		}
 		return v
 	}
